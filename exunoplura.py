@@ -25,13 +25,17 @@ def init(servername):
     central_conf().write_text(central_conf_text)
 
     click.echo(
-        'To complete initialization, import exunoplura.conf into your nginx config.\n'
+        'To complete initialization, import exunoplura_nginx.conf into your nginx config.\n'
         'Depending on your nginx installation, that could look like this:\n'
         f'  `sudo ln {central_conf()} /etc/nginx/sites-enabled/`'
     )
 
 @cli.command()
 def create():
+    pass
+
+@cli.command()
+def remove():
     pass
 
 @cli.command()
@@ -46,10 +50,13 @@ def config_dir():
     return Path.home() / '.exunoplura'
 
 def sandbox_conf_dir():
-    return config_dir() / 'sandbox_configs'
+    return config_dir() / 'sandbox_nginx_configs'
 
 def central_conf():
-    return config_dir() / 'exunoplura.conf'
+    return config_dir() / 'exunoplura_nginx.conf'
+
+def state_file():
+    return config_dir() / 'state.json'
 
 
 if __name__ == '__main__':

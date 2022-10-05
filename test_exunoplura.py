@@ -17,8 +17,8 @@ def test_first_init(fake_home_dir):
     result = runner.invoke(cli, 'init --servername www.example.test')
     
     config_dir = fake_home_dir / '.exunoplura'
-    sandbox_conf_dir = config_dir / 'sandbox_configs'
-    central_conf = config_dir / 'exunoplura.conf'
+    sandbox_conf_dir = config_dir / 'sandbox_nginx_configs'
+    central_conf = config_dir / 'exunoplura_nginx.conf'
 
     assert config_dir.is_dir()
     assert sandbox_conf_dir.is_dir()
@@ -30,8 +30,8 @@ def test_first_init(fake_home_dir):
 def test_second_init(fake_home_dir):
     # fill the .exunoplura dir with a mock config
     config_dir = fake_home_dir / '.exunoplura'
-    sandbox_conf_dir = config_dir / 'sandbox_configs'
-    central_conf = config_dir / 'exunoplura.conf'
+    sandbox_conf_dir = config_dir / 'sandbox_nginx_configs'
+    central_conf = config_dir / 'exunoplura_nginx.conf'
     sandbox1_conf = sandbox_conf_dir / 'sandbox1.conf'
     sandbox2_conf = sandbox_conf_dir / 'sandbox2.conf'
     
@@ -54,7 +54,7 @@ def test_second_init(fake_home_dir):
     assert sandbox2_conf.read_text() == sandbox2_conf_text
 
 def test_list(fake_home_dir):
-    (fake_home_dir / '.exunoplura' / 'sandbox_configs').mkdir(parents=True)
+    (fake_home_dir / '.exunoplura' / 'sandbox_nginx_configs').mkdir(parents=True)
     runner = CliRunner()
     result = runner.invoke(cli, 'list')
     assert result.exit_code == 0
