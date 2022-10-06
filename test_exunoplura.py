@@ -2,6 +2,7 @@ import pytest
 from click.testing import CliRunner
 from exunoplura import cli
 from pathlib import Path
+import json
 
 
 @pytest.fixture
@@ -14,18 +15,22 @@ def fake_home_dir(monkeypatch, tmp_path):
 
 def test_first_init(fake_home_dir):
     runner = CliRunner()
-    result = runner.invoke(cli, 'init --servername www.example.test')
+    result = runner.invoke(cli, 'init --server_name www.example.test')
     
     config_dir = fake_home_dir / '.exunoplura'
     sandbox_conf_dir = config_dir / 'sandbox_nginx_configs'
     central_conf = config_dir / 'exunoplura_nginx.conf'
+    state_file = config_dir / 'state.json'
 
     assert config_dir.is_dir()
     assert sandbox_conf_dir.is_dir()
     assert central_conf.is_file()
+    assert state_file.is_file()
     central_conf_text = central_conf.read_text()
     assert 'server_name www.example.test;' in central_conf_text
     assert f'include {sandbox_conf_dir}/*;' in central_conf_text
+    state = json.loads(state_file.read_text())
+    assert state == {'sandboxes':[]}
 
 def test_second_init(fake_home_dir):
     # fill the .exunoplura dir with a mock config
@@ -34,16 +39,19 @@ def test_second_init(fake_home_dir):
     central_conf = config_dir / 'exunoplura_nginx.conf'
     sandbox1_conf = sandbox_conf_dir / 'sandbox1.conf'
     sandbox2_conf = sandbox_conf_dir / 'sandbox2.conf'
+    state_file = config_dir / 'state.json'
     
     central_conf_text = 'server { some random; config entries; }'
     sandbox1_conf_text = 'location { more random; config entries; }'
     sandbox2_conf_text = 'location { even more; meaningless garble; }'
+    state = {'some':'variable', 'sandboxes':[{'more':'variables'}]}
     
     config_dir.mkdir()
     sandbox_conf_dir.mkdir()
     central_conf.write_text(central_conf_text)
     sandbox1_conf.write_text(sandbox1_conf_text)
     sandbox2_conf.write_text(sandbox2_conf_text)
+    state_file.write_text(json.dumps(state))
 
     test_first_init(fake_home_dir)
     
