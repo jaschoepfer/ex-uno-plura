@@ -1,10 +1,12 @@
 import click
 from pathlib import Path
 import json
+import string
 from jinja2 import Environment, FileSystemLoader
 #TODO: convert to a package and use PackageLoader
 env = Environment(loader=FileSystemLoader('./templates'))
 import docker
+import secrets
 
 @click.group()
 def cli():
@@ -34,22 +36,46 @@ def init(server_name):
         f'  `sudo ln {central_conf()} /etc/nginx/sites-enabled/`'
     )
 
+def validate_name(ctx, param, name):
+    alphanumerics = string.ascii_letters + string.digits
+    permitted_chars = alphanumerics + '_-'
+    
+    name_invalid = any([
+        name == '',
+        name[0] not in alphanumerics,
+        any(char not in permitted_chars for char in name)
+    ])
+
+    if name_invalid:
+        raise click.BadParameter('format must be [a-zA-Z0-9][a-zA-Z0-9_-]*')
+
+    return name
+
 @cli.command()
-@click.option('--name', type=click.STRING)
-@click.option('--ssh_port', type=click.INT)
-@click.option('--http_port', type=click.INT)
+@click.option('--name', type=click.UNPROCESSED, callback=validate_name, prompt=True)
+@click.option('--ssh_port', type=click.INT, default=0)
+@click.option('--http_port', type=click.INT, default=0)
 def create(name, ssh_port, http_port):
-    docker_client = docker.from_env()
-    docker_client.containers.run('linuxserver/openssh-server',
-            detach=True,
-            restart_policy={'Name':'always'},
-            ports={2222:ssh_port, 80:http_port},
-            environment={
-                'USER_NAME':'user', 'USER_PASSWORD':'memes',
-                'PASSWORD_ACCESS':'true', 'SUDO_ACCESS':'true'
+    password = gen_password() 
+
+    try:
+        docker_client = docker.from_env()
+        c = docker_client.containers.run('linuxserver/openssh-server',
+                name=f'exunoplura_{name}',
+                detach=True,
+                restart_policy={'Name': 'always'},
+                ports={2222:ssh_port, 80:http_port},
+                environment={
+                    'USER_NAME':'user', 'USER_PASSWORD':password,
+                    'PASSWORD_ACCESS':'true', 'SUDO_ACCESS':'true'
                 }
             )
+    except Exception as e:
+        click.echo('Could not start container:' + str(e))
+        return
 
+    click.echo(f'Container {c.name} started!')
+    click.echo(f'User password (will not be shown again):{password}')
 
 @cli.command()
 def remove():
@@ -60,8 +86,11 @@ def list():
     configs = [x for x in sandbox_conf_dir().iterdir() if x.is_file()]
     click.echo(f'{len(configs)} sandboxes running:')
 
+@cli.command()
+def pwgen():
+    click.echo(gen_password())    
 
-# Known Paths Section
+## Known Paths
 
 def config_dir():
     return Path.home() / '.exunoplura'
@@ -75,6 +104,14 @@ def central_conf():
 def state_file():
     return config_dir() / 'state.json'
 
+
+## Utility Functions
+
+def gen_password():
+    with open('/usr/share/dict/words') as f:
+        words = [word.strip() for word in f if "'" not in word]
+    password = ' '.join(secrets.choice(words) for i in range(4))
+    return password
 
 if __name__ == '__main__':
     cli()
