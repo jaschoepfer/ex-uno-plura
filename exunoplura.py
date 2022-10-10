@@ -5,8 +5,8 @@ import string
 from jinja2 import Environment, FileSystemLoader
 #TODO: convert to a package and use PackageLoader
 env = Environment(loader=FileSystemLoader('./templates'))
-import docker
 import secrets
+import subprocess
 
 @click.group()
 def cli():
@@ -52,29 +52,30 @@ def validate_name(ctx, param, name):
     return name
 
 @cli.command()
-@click.option('--name', type=click.UNPROCESSED, callback=validate_name, prompt=True)
-@click.option('--ssh_port', type=click.INT, default=0)
-@click.option('--http_port', type=click.INT, default=0)
-def create(name, ssh_port, http_port):
+@click.option('--http_port', type=click.INT)
+@click.argument('name', type=click.UNPROCESSED, callback=validate_name)
+@click.argument('image', type=click.STRING)
+@click.argument('args', nargs=-1)
+def create(http_port, name, image, args):
+    container_name = f'exunoplura_{name}'
     password = gen_password() 
+    ssh_port=6001
 
     try:
-        docker_client = docker.from_env()
-        c = docker_client.containers.run('linuxserver/openssh-server',
-                name=f'exunoplura_{name}',
-                detach=True,
-                restart_policy={'Name': 'always'},
-                ports={2222:ssh_port, 80:http_port},
-                environment={
-                    'USER_NAME':'user', 'USER_PASSWORD':password,
-                    'PASSWORD_ACCESS':'true', 'SUDO_ACCESS':'true'
-                }
-            )
+        docker_cmd = [
+                'docker', 'run', '--detach', f'--name={container_name}', '--restart=always',
+                f'--publish={http_port}:80', f'--publish={ssh_port}:2222',
+                '--env=USER_NAME=user', f'--env=USER_PASSWORD={password}',
+                '--env=SUDO_ACCESS=true', '--env=PASSWORD_ACCESS=true',
+                'linuxserver/openssh-server'
+            ]
+        print(' '.join(docker_cmd))
+        subprocess.run(docker_cmd)
     except Exception as e:
         click.echo('Could not start container:' + str(e))
         return
 
-    click.echo(f'Container {c.name} started!')
+    click.echo(f'Container {container_name} started!')
     click.echo(f'User password (will not be shown again):{password}')
 
 @cli.command()
