@@ -73,7 +73,8 @@ def test_create(fake_home_dir):
     result = runner.invoke(cli, ['create', name, str(port)])
 
     assert result.exit_code == 0
-    assert any(l == { 'name': name, 'http-port': port } for l in state.get_locations())
+    new_loc = { 'name': name, 'http-port': port }
+    assert any(l == new_loc for l in state.get_locations())
     new_conf = paths.location_conf_dir() / f'{ name }.conf'
     assert new_conf.is_file()
     new_conf_text = new_conf.read_text()

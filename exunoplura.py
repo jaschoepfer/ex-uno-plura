@@ -32,7 +32,7 @@ def init(server_name):
     click.echo(
         'To complete initialization, import exunoplura_nginx.conf into your nginx config.\n'
         'Depending on your nginx installation, that could look like this:\n'
-        f'  `sudo ln {paths.central_conf()} /etc/nginx/sites-enabled/`'
+        f'  `sudo ln -s {paths.central_conf()} /etc/nginx/sites-enabled/`'
     )
 
 def validate_name(ctx, param, name):
