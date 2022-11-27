@@ -1,2 +1,4 @@
 # ex-unus-plura
-CLI tool for creating and managing sandboxed web-servlets using docker &amp; nginx
+A CLI nginx configuration tool.
+
+ex-unus-plura is an easy to use CLI tool to configure nginx reverse proxies.
