@@ -1,5 +1,6 @@
 # builtins
 import string
+import os
 # 3rd party imports
 import click
 from jinja2 import Environment, PackageLoader
@@ -15,7 +16,8 @@ def cli():
 @cli.command()
 @click.option('--server_name', type=click.STRING, default='_')
 def init(server_name):
-    # TODO: check if nginx is installed
+    if os.system('nginx -v') != 0:
+        click.echo(
 
     loc_dir = paths.location_conf_dir()
     loc_dir.mkdir(exist_ok=True, parents=True)
