@@ -1,10 +1,10 @@
+# builtins
 import string
 # 3rd party imports
 import click
-from jinja2 import Environment, FileSystemLoader
-#TODO: convert to a package and use PackageLoader
-env = Environment(loader=FileSystemLoader('./templates'))
-# local imports
+from jinja2 import Environment, PackageLoader
+env = Environment(loader=PackageLoader('exunoplura', 'templates'))
+# project imports
 import paths
 import state
 
@@ -63,15 +63,6 @@ def create(http_port, name):
             http_port=http_port
         )
     loc_conf.write_text(loc_conf_text)
-
-@cli.command()
-def remove():
-    pass
-
-@cli.command()
-def list():
-    configs = [x for x in paths.location_conf_dir().iterdir() if x.is_file()]
-    click.echo(f'{len(configs)} locations set up:')
 
 
 if __name__ == '__main__':
