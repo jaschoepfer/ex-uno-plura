@@ -5,7 +5,6 @@ import json
 
 from exunoplura import cli
 import paths
-import state
 
 @pytest.fixture
 def fake_home_dir(monkeypatch, tmp_path):
@@ -15,37 +14,66 @@ def fake_home_dir(monkeypatch, tmp_path):
     return tmp_path
 
 
-def test_first_init(fake_home_dir):
+def test_create_server(fake_home_dir):
     runner = CliRunner()
-    server_name = 'example.url'
-    
-    result = runner.invoke(cli, f'init --server_name { server_name }')
-    
+    name = 'example.url'
+
+    result = runner.invoke(cli, f'create-server { name }')
+ 
     assert result.exit_code == 0
-    assert paths.central_conf().read_text() == f'''server {{
-	listen 80;
-	listen [::]:80;
+    server_dir = paths.server_dir(name)
+    assert paths.server_conf(name).read_text() == f'''server {{
+    server_name { name };
+    listen 80;
+    listen [::]:80;
 
-	server_name { server_name };
-
-	# load location blocks
-	include { paths.location_conf_dir() }/*;
+    # load directories
+    include { server_dir }/*;
 }}
 '''
-    assert state.read() == { 'locations': [] }
 
-def test_create(fake_home_dir):
+def test_create_ssl_server(fake_home_dir):
     runner = CliRunner()
-    runner.invoke(cli, 'init')
-    name = 'test_name'
-    port = 8008
+    name = 'example.url'
+    cert = fake_home_dir / 'cert.pem'
+    key = fake_home_dir / 'key.pem'
+    # tool checks for file existance
+    cert.touch()
+    key.touch()
 
-    result = runner.invoke(cli, ['create', name, str(port)])
+    result = runner.invoke(cli, f'create-server --cert { cert } --key { key } { name }')
 
     assert result.exit_code == 0
-    assert state.read() == { 'locations': [{ 'name': name, 'http-port': port }] }
-    assert (paths.location_conf_dir() / f'{ name }.conf').read_text() == f'''location /{ name } {{
-	proxy_pass http://localhost:{ port }/;
+    server_dir = paths.server_dir(name)
+    assert paths.server_conf(name).read_text() == f'''server {{
+    server_name { name };
+    listen 80;
+    listen [::]:80;
+
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    ssl_certificate { cert };
+    ssl_certificate_key { key };
+
+    # load directories
+    include { server_dir }/*;
+}}
+'''
+
+def test_create_dir(fake_home_dir):
+    runner = CliRunner()
+    server = 'example.url'
+    runner.invoke(cli, f'create-server { server }')
+    path = '/directory'
+    port = 5050
+
+    result = runner.invoke(cli, f'create-dir --proxy-port { port } { server } { path }')
+
+    assert result.exit_code == 0
+    assert paths.dir_conf(server, path).read_text() == f'''location /directory {{
+
+    proxy_pass http://localhost:5050/;
+
 }}
 '''
 
